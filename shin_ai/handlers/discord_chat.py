@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from shin_ai.platforms.discord import DiscordPlatform
 from shin_ai.core.handler import process_message
@@ -42,12 +43,33 @@ if DISCORD_ENABLED and DISCORD_CONFIGURED:
         if not should_respond or state.IS_CHECKING_KEYS:
             return
 
-        try:
-            await process_message(discord_platform, unified_msg)
-        except Exception as e:
-            logger.error("Error processing Discord message: %s", e, exc_info=True)
+        # التعديل لحل مشكلة التعليق (Infinite Typing) وتسريع الاستجابة
+        async def process_task():
+            try:
+                # يظهر للمستخدم أن البوت يكتب الآن
+                async with message.channel.typing():
+                    # نضع حد أقصى للانتظار (30 ثانية)، إذا ما رد يفصل عشان ما يعلق
+                    await asyncio.wait_for(
+                        process_message(discord_platform, unified_msg), 
+                        timeout=30.0
+                    )
+            except asyncio.TimeoutError:
+                logger.error("Timeout error: AI took too long to respond.")
+                try:
+                    await message.reply("عذراً، الاتصال بالذكاء الاصطناعي أخذ وقت أطول من اللازم. جرب تسألني مرة ثانية!")
+                except:
+                    pass
+            except Exception as e:
+                logger.error("Error processing Discord message: %s", e, exc_info=True)
+                try:
+                    await message.reply("عذراً، صارت مشكلة أثناء معالجة رسالتك.")
+                except:
+                    pass
+
+        # تشغيل المعالجة في الخلفية
+        asyncio.create_task(process_task())
+
 elif DISCORD_ENABLED and not DISCORD_CONFIGURED:
     logger.warning("Discord is enabled but DISCORD_BOT_TOKEN is missing; Discord handler is disabled.")
 else:
     logger.info("Discord handler is disabled by configuration.")
-
