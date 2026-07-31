@@ -25,8 +25,8 @@ async def on_message(message):
             if not user_prompt:
                 user_prompt = "مرحباً!"
 
-            # رابط Google Gemini الرسمى مع النموذج المستقر gemini-1.5-flash
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+            # استخدام النموذج المستقر والسريع gemini-2.0-flash
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
             headers = {"Content-Type": "application/json"}
             payload = {
                 "contents": [{"parts": [{"text": user_prompt}]}]
@@ -40,11 +40,8 @@ async def on_message(message):
                             reply_text = data['candidates'][0]['content']['parts'][0]['text']
                             await message.reply(reply_text)
                         else:
-                            err_body = await resp.text()
-                            print(f"API Error Code: {resp.status} - Details: {err_body}")
-                            await message.reply(f"حدث خطأ في المفتاح أو الخدمة (رمز: {resp.status}).")
+                            await message.reply(f"حدث خطأ في الاتصال (رمز: {resp.status}).")
             except Exception as e:
-                print(f"Exception: {e}")
                 await message.reply(f"حدث خطأ غير متوقع: {e}")
 
     await bot.process_commands(message)
