@@ -1,59 +1,52 @@
-import asyncio
-from pyrogram import idle
-import shin_ai.bot
-from shin_ai.utils.logger_config import logger, reconfigure_logger
-from shin_ai.config import DEBUG
-from shin_ai.services.social import index_social_context
-from shin_ai.handlers.telegram_chat import telegram_platform
-from shin_ai.handlers.discord_chat import discord_platform
-from shin_ai.handlers.whatsapp_chat import whatsapp_platform
+import os
+import discord
+from discord.ext import commands
+from google import genai
 
-# Apply debug: true/false from config.yaml to the logger level
-reconfigure_logger(DEBUG)
+# إعدادات البوت والذكاء الاصطناعي
+DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-async def main():
-    # Initialize the social context database
-    try: 
-        index_social_context()
-    except Exception as e: 
-        logger.error(f"Failed to index social context: {e}")
+# تهيئة عميل جيميني الجديد
+ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
-    active_platforms = []
-    configured_platforms = [
-        ("Telegram", telegram_platform),
-        ("Discord", discord_platform),
-        ("WhatsApp", whatsapp_platform),
-    ]
+# إعدادات صلاحيات البوت في ديسكورد
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-    for platform_label, platform in configured_platforms:
-        if platform is None:
-            logger.info(f"{platform_label} platform is disabled or unavailable.")
-            continue
+@bot.event
+async def on_ready():
+    print(f"ShinAI Started Successfully. Listening for messages as {bot.user}")
 
-        logger.info(f"Starting {platform_label} Platform...")
-        try:
-            await platform.start()
-            active_platforms.append((platform_label, platform))
-        except Exception as e:
-            logger.error(f"Failed to start {platform_label} platform: {e}")
+@bot.event
+async def on_message(message):
+    # تجاهل رسائل البوت نفسهِ لكي لا يحدث تكرار بالردود
+    if message.author == bot.user:
+        return
 
-    logger.info("ShinAI Started Successfully. Listening for messages...")
-    if not active_platforms:
-        logger.warning("No chat platforms are active. Configure TELEGRAM_ENABLED, DISCORD_ENABLED, WHATSAPP_ENABLED and credentials.")
-    
-    # Wait until interrupted
-    await idle()
-    
-    logger.info("Stopping platforms...")
-    for platform_label, platform in reversed(active_platforms):
-        try:
-            await platform.stop()
-        except Exception as e:
-            logger.error(f"Failed to stop {platform_label} platform cleanly: {e}")
+    # إذا تم مناداة البوت أو الرد على رسالته
+    if bot.user.mentioned_in(message):
+        async with message.channel.typing():
+            try:
+                # تنظيف النص من منشن البوت
+                user_prompt = message.content.replace(f"<@{bot.user.id}>", "").strip()
+                
+                if not user_prompt:
+                    user_prompt = "مرحباً!"
 
+                # إرسال الطلب لنموذج جيميني
+                response = ai_client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=user_prompt,
+                )
+                
+                await message.reply(response.text)
+            except Exception as e:
+                await message.reply(f"حدث خطأ أثناء معالجة الطلب: {e}")
+
+    await bot.process_commands(message)
+
+# تشغيل البوت
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(main())
-    except KeyboardInterrupt:
-        pass
+    bot.run(DISCORD_TOKEN)
