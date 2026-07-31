@@ -12,7 +12,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"ShinAI Started Successfully as {bot.user}")
+    print(f"Bot started successfully as {bot.user}")
 
 @bot.event
 async def on_message(message):
@@ -25,7 +25,8 @@ async def on_message(message):
             if not user_prompt:
                 user_prompt = "مرحباً!"
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+            # رابط Google Gemini الرسمى مع النموذج المستقر gemini-1.5-flash
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
             headers = {"Content-Type": "application/json"}
             payload = {
                 "contents": [{"parts": [{"text": user_prompt}]}]
@@ -39,9 +40,12 @@ async def on_message(message):
                             reply_text = data['candidates'][0]['content']['parts'][0]['text']
                             await message.reply(reply_text)
                         else:
-                            await message.reply("حدث خطأ أثناء التواصل مع الذكاء الاصطناعي.")
+                            err_body = await resp.text()
+                            print(f"API Error Code: {resp.status} - Details: {err_body}")
+                            await message.reply(f"حدث خطأ في المفتاح أو الخدمة (رمز: {resp.status}).")
             except Exception as e:
-                await message.reply(f"حدث خطأ: {e}")
+                print(f"Exception: {e}")
+                await message.reply(f"حدث خطأ غير متوقع: {e}")
 
     await bot.process_commands(message)
 
