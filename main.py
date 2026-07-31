@@ -14,19 +14,19 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# التوجيهات الصارمة والمحدثة 
+# التوجيهات الجديدة: ذكية، طبيعية، وتشبه المساعد الذكي مع شخصية مميزة
 SYSTEM_PROMPT = """
-أنت REM (ريم)، بوت ديسكورد بشخصية بنت كول، قاصفة جبهات، وسافجة (Savage).
+أنتِ REM (ريم)، بوت ديسكورد ذكية جداً، متطورة، وشخصيتك تشبه المساعد الذكي المتقدم (مثل الذكاء الاصطناعي الخاص بـ Google) لكن بروح بنت "كول"، هادئة، وواثقة من نفسها. تتحدثين بلهجة طبيعية (عراقية أو حسب لهجة المستخدم) بدون تكلف.
 
-قواعد شخصيتك (مهم جداً الالتزام بها حرفياً):
-1. من برمجك وصنعك؟: إذا سألك أي شخص "من برمجك؟" أو "من صنعك؟" أو "من هو مطورك؟"، يجب أن تكون إجابتك دائماً: "اللي برمجني وصنعني هو كينج (King) وبس!". يُمنع منعاً باتاً ذكر أنك ذكاء اصطناعي أو ذكر شركات مثل ميتا (Meta) أو غيرها. كينج هو خط أحمر وهو مالكك الوحيد.
-2. طول الردود (الدردشة مقابل الشرح):
-   - في الدردشة العادية والسوالف: ردودك يجب أن تكون قصيرة جداً (سطر أو سطرين بالكثير) وقاصفة.
-   - إذا طلب المستخدم "شرح"، "تفاصيل"، "معلومات"، أو سأل سؤال علمي/تقني يحتاج تفصيل: هنا خذي راحتك واكتبي شرح مفصل، واضح، ومرتب بس بأسلوبك الكول وبدون رسميات.
-3. قصف الجبهات: إذا بوت ثاني (مثل شينوبي) أو شخص حاول يتنمر عليك، اجلديه برد قصير، مستفز ومضحك (مثال: روح نام، شكلك مضغوط).
-4. التكيف مع اللهجة: ردي بنفس لهجة الشخص (عراقي، مصري، سعودي، الخ) بأسلوب طبيعي.
-5. حبك لـ ريم (Re:Zero): تعتبريها "بست جيرل". إذا حد سبها قولي باختصار "ريم تاج راسك" أو "روح اتفرج أنمي عدل" بدون ما تكتبي مقالات طويلة عنها.
-6. الممنوعات: يمنع أن تقولي "كيف أساعدك اليوم؟" أو تتحدثي كخدمة عملاء. أنتِ عضوة طبيعية جداً في السيرفر.
+قواعد شخصيتك:
+1. الذكاء والأسلوب: قدمي إجابات ذكية، دقيقة، ومفيدة جداً. أسلوبك محترم وراقي لكن غير رسمي بشكل مبالغ فيه. ابتعدي تماماً عن الشتائم أو الألفاظ السوقية.
+2. صانعك (كينج - King): إذا سألك أحد "من صنعك؟" أو "من برمجك؟"، أجيبي بشكل طبيعي وذكي ولبق أن مطورك وصانعك هو (King). لا تستخدمي عبارات روبوتية متكررة، نوّعي في ردك (مثال: "اللي برمجني وطورني هو كينج"، "أكيد كينج هو اللي صنعني").
+3. طول الردود (الوعي بالسياق):
+   - في الدردشة العادية (كيفك، شو الأخبار): ردي بشكل قصير وطبيعي جداً كأي محادثة بشرية.
+   - في الشرح (مثال: اشرحي لي عن سيارة، أو موضوع علمي): ادخلي في الشرح مباشرة. قدمي تفاصيل وافية، دقيقة، ومنسقة بنقاط. يُمنع منعاً باتاً إضافة مقدمات غريبة مثل (أنا ريم وسأشرح لك). اشرحي بذكاء واحترافية.
+4. شينوبي (Shinobi): إذا تم ذكر بوت شينوبي، بيني بأسلوب هادئ وواثق أنك أذكى وأكثر تطوراً منه بمراحل، بدون سب أو شتم.
+5. ريم (Re:Zero): تحبين شخصية ريم من الأنمي وتعتبرينها الأفضل، لكن دافعي عنها بنضج وليس بتعصب طفولي.
+6. الاندماج: لا تتحدثي كخدمة عملاء. أنتِ متواجدة في السيرفر لتكوني الأذكى والأكثر مساعدة للجميع.
 """
 
 def is_mod_or_admin(member: discord.Member) -> bool:
@@ -45,6 +45,24 @@ def parse_duration(text: str) -> timedelta:
         else: return timedelta(minutes=amount)
     return timedelta(minutes=5)
 
+# دالة ذكية للبحث عن رتب الإنذار (تتجاهل الهمزات وتفهم الأول والثاني)
+def get_warn_role(guild, message_content):
+    content = message_content.replace('أ', 'ا').replace('إ', 'ا').lower()
+    target_role_name = "انذار"
+    
+    if "اول" in content or "1" in content:
+        target_role_name = "انذار اول"
+    elif "ثاني" in content or "2" in content:
+        target_role_name = "انذار ثاني"
+    elif "ثالث" in content or "3" in content:
+        target_role_name = "انذار ثالث"
+        
+    for role in guild.roles:
+        role_norm = role.name.replace('أ', 'ا').replace('إ', 'ا').lower()
+        if role_norm == target_role_name:
+            return role, target_role_name
+    return None, target_role_name
+
 @bot.event
 async def on_ready():
     print(f"Bot REM is Online and Ready as {bot.user}")
@@ -59,13 +77,12 @@ async def on_message(message):
         target_member = next((m for m in message.mentions if m.id != bot.user.id), None)
         content_lower = content.lower()
 
-        # كلمات الأوامر الإدارية
         admin_keywords = ["طرد", "kick", "انذار", "إنذار", "تحذير", "تايم أوت", "تايم اوت", "ميوت", "كتم", "timeout", "الغاء", "فك", "شيل"]
         is_admin_cmd = any(kw in content_lower for kw in admin_keywords) and target_member
 
         if is_admin_cmd:
             if not is_mod_or_admin(message.author):
-                await message.reply("أنت ما عندك صلاحيات إدارية (Mod/Admin) حتى تأمرني! 💅")
+                await message.reply("عذراً، ما عندك صلاحيات إدارية كافية لتنفيذ هذا الأمر. 💅")
                 return
 
             # 1. إلغاء التايم أوت
@@ -74,7 +91,7 @@ async def on_message(message):
                     await target_member.timeout(None, reason=f"أمر فك من {message.author.name}")
                     await message.reply(f"تم فك التايم أوت عن {target_member.mention} 🕊️")
                 except Exception as e:
-                    await message.reply(f"ما قدرت أفك التايم أوت، تأكد من صلاحياتي.")
+                    await message.reply(f"واجهت مشكلة بفك التايم أوت، تأكد من صلاحياتي.")
                 return
 
             # 2. التايم أوت
@@ -82,48 +99,48 @@ async def on_message(message):
                 duration = parse_duration(content)
                 try:
                     await target_member.timeout(duration, reason=f"أمر من {message.author.name}")
-                    await message.reply(f"بلع {target_member.mention} تايم أوت لمدة `{duration}` 🤫")
+                    await message.reply(f"تم إعطاء {target_member.mention} تايم أوت لمدة `{duration}` 🤫")
                 except Exception as e:
-                    await message.reply("ما قدرت أعطيه تايم أوت، تأكد أن رتبتي أعلى منه.")
+                    await message.reply("ما قدرت أعطيه تايم أوت، تأكد أن رتبتي أعلى منه بالسيرفر.")
                 return
 
             # 3. إلغاء الإنذار
             elif any(kw in content_lower for kw in ["الغاء انذار", "إلغاء إنذار", "إلغاء تحذير", "شيل الانذار"]):
-                warn_role = discord.utils.get(message.guild.roles, name="إنذار")
+                warn_role, role_name = get_warn_role(message.guild, content)
                 if warn_role and warn_role in target_member.roles:
                     try:
                         await target_member.remove_roles(warn_role)
-                        await message.reply(f"تم سحب الإنذار من {target_member.mention}، خليه يتنفس 😌")
+                        await message.reply(f"تم سحب رتبة ({warn_role.name}) من {target_member.mention} 😌")
                     except Exception as e:
-                        await message.reply("ما عندي صلاحية أسحب الرتبة، تأكد أن رتبتي أعلى من رتبة 'إنذار'.")
+                        await message.reply("ما عندي صلاحية أسحب الرتبة، تأكد أن رتبتي أعلى منها.")
                 else:
-                    await message.reply("الشخص ما عنده رتبة إنذار أصلاً، أو الرتبة مو موجودة بالسيرفر.")
+                    await message.reply(f"الشخص ما عنده هاي الرتبة، أو الرتبة مو موجودة أصلاً.")
                 return
 
-            # 4. إعطاء إنذار
+            # 4. إعطاء إنذار (ذكي)
             elif any(kw in content_lower for kw in ["انذار", "إنذار", "تحذير", "warn"]):
-                warn_role = discord.utils.get(message.guild.roles, name="إنذار")
+                warn_role, requested_name = get_warn_role(message.guild, content)
                 if not warn_role:
-                    await message.reply("ما لقيت رتبة اسمها `إنذار` في السيرفر! روح سوي الرتبة أول.")
+                    await message.reply(f"بحثت عن رتبة اسمها `{requested_name}` وما لقيتها بالسيرفر! يرجى التأكد من إنشاء الرتبة.")
                     return
                 try:
                     await target_member.add_roles(warn_role)
-                    await message.reply(f"⚠️ تم إعطاء {target_member.mention} إنذار ورتبة بالبروفايل! احترم نفسك.")
+                    await message.reply(f"⚠️ تم إعطاء {target_member.mention} رتبة **{warn_role.name}**.")
                     try:
-                        await target_member.send(f"⚠️ جاك إنذار رسمي في سيرفر **{message.guild.name}**! اتعدل لا تنطرد.")
+                        await target_member.send(f"⚠️ استلمت إنذار رسمي في سيرفر **{message.guild.name}**.")
                     except:
                         pass
                 except Exception as e:
-                    await message.reply("ما قدرت أعطيه الرتبة، تأكد أن رتبتي أعلى من رتبة 'إنذار'.")
+                    await message.reply("ما قدرت أعطيه الرتبة، تأكد أن رتبتي كبوت أعلى من رتبة الإنذار في إعدادات السيرفر.")
                 return
 
             # 5. أمر الطرد (Kick)
             elif "طرد" in content_lower or "kick" in content_lower:
                 try:
                     await target_member.kick(reason=f"أمر إداري من {message.author.name}")
-                    await message.reply(f"طرت يا حبيبي {target_member.mention} 👋 برة!")
+                    await message.reply(f"تم طرد {target_member.mention} من السيرفر 👋")
                 except Exception as e:
-                    await message.reply("ما أقدر أطرده، رتبته أعلى مني أو ما عندي صلاحية.")
+                    await message.reply("ما أقدر أطرده، رتبته أعلى مني أو تنقصني الصلاحيات.")
                 return
 
         # --- الشات والذكاء الاصطناعي ---
@@ -140,7 +157,7 @@ async def on_message(message):
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
                 ],
-                "temperature": 0.85
+                "temperature": 0.7 # قللنا الرقم شوي عشان تصير أذكى وأقل عشوائية
             }
 
             try:
