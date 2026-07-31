@@ -1,6 +1,7 @@
 import os
 import discord
 import aiohttp
+import asyncio
 from discord.ext import commands
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
@@ -35,19 +36,28 @@ async def on_message(message):
                 }
             }
 
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, json=payload, headers=headers) as resp:
-                        if resp.status == 200:
-                            data = await resp.json()
-                            reply_text = data['candidates'][0]['content']['parts'][0]['text']
-                            await message.reply(reply_text)
-                        elif resp.status == 429:
-                            await message.reply("وصلنا للحد المسموح من الرسائل في هذه الدقيقة، انتظر دقيقة واحدة وجرب مجدداً!")
-                        else:
-                            await message.reply(f"حدث خطأ في الاتصال (رمز: {resp.status}).")
-            except Exception as e:
-                await message.reply(f"حدث خطأ غير متوقع: {e}")
+            # المحاولة الذكية: إذا واجه خطأ 429 سينتظر ويعيد المحاولة تلقائياً
+            async with aiohttp.ClientSession() as session:
+                for attempt in range(3):
+                    try:
+                        async with session.post(url, json=payload, headers=headers) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                reply_text = data['candidates'][0]['content']['parts'][0]['text']
+                                await message.reply(reply_text)
+                                break
+                            elif resp.status == 429:
+                                if attempt < 2:
+                                    await asyncio.sleep(2.5)  # انتظار ثانيتين ونصف ثم إعادة المحاولة تلقائياً
+                                    continue
+                                else:
+                                    await message.reply("تجاوزنا الحد المجاني مؤقتاً، انتظر بضع ثوانٍ وجرب مجدداً!")
+                            else:
+                                await message.reply(f"حدث خطأ في الاتصال (رمز: {resp.status}).")
+                                break
+                    except Exception as e:
+                        await message.reply(f"حدث خطأ غير متوقع: {e}")
+                        break
 
     await bot.process_commands(message)
 
