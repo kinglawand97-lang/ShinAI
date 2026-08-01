@@ -1,33 +1,38 @@
 import os
 import re
 import discord
-import aiohttp
+import google.generativeai as genai
 from datetime import timedelta
 from discord.ext import commands
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-GROQ_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_KEY = os.getenv("GEMINI_API_KEY") 
+
+# 👑 حط الأيدي (ID) مال حسابك هنا بدل هذا الرقم 👑
+OWNER_ID = 980099860118261770
+
+# إعداد محرك Gemini الذكي
+genai.configure(api_key=GEMINI_KEY)
+
+SYSTEM_INSTRUCTION = """
+أنتِ REM (ريم)، بوت ديسكورد ذكية، هادئة، ولغتك طبيعية جداً تشبه البشر (بدون رسميات مبالغ فيها وبدون أسلوب الروبوتات).
+1. صانعك ومبرمجك الوحيد هو "كينج" (King).
+2. طول الرد: إذا كانت المحادثة عادية أو مزحة، ردي بكلمات قليلة وطبيعية. إذا كان هناك طلب شرح لموضوع، فصّلي واشرحي بذكاء وبدون مقدمات مثل "أنا مستعدة للشرح".
+3. شخصيتك: واثقة، ذكية جداً، وتفهمين الكلام العربي والعراقي بشكل ممتاز.
+4. ريم من أنمي Re:Zero هي شخصيتك المفضلة (بدون تعصب).
+5. تجنبي تماماً القول بأنك نموذج لغوي أو ذكاء اصطناعي. أنتِ "ريم" وفقط.
+"""
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=SYSTEM_INSTRUCTION,
+    generation_config={"temperature": 0.7}
+)
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-# التوجيهات الجديدة: ذكية، طبيعية، وتشبه المساعد الذكي مع شخصية مميزة
-SYSTEM_PROMPT = """
-أنتِ REM (ريم)، بوت ديسكورد ذكية جداً، متطورة، وشخصيتك تشبه المساعد الذكي المتقدم (مثل الذكاء الاصطناعي الخاص بـ Google) لكن بروح بنت "كول"، هادئة، وواثقة من نفسها. تتحدثين بلهجة طبيعية (عراقية أو حسب لهجة المستخدم) بدون تكلف.
-
-قواعد شخصيتك:
-1. الذكاء والأسلوب: قدمي إجابات ذكية، دقيقة، ومفيدة جداً. أسلوبك محترم وراقي لكن غير رسمي بشكل مبالغ فيه. ابتعدي تماماً عن الشتائم أو الألفاظ السوقية.
-2. صانعك (كينج - King): إذا سألك أحد "من صنعك؟" أو "من برمجك؟"، أجيبي بشكل طبيعي وذكي ولبق أن مطورك وصانعك هو (King). لا تستخدمي عبارات روبوتية متكررة، نوّعي في ردك (مثال: "اللي برمجني وطورني هو كينج"، "أكيد كينج هو اللي صنعني").
-3. طول الردود (الوعي بالسياق):
-   - في الدردشة العادية (كيفك، شو الأخبار): ردي بشكل قصير وطبيعي جداً كأي محادثة بشرية.
-   - في الشرح (مثال: اشرحي لي عن سيارة، أو موضوع علمي): ادخلي في الشرح مباشرة. قدمي تفاصيل وافية، دقيقة، ومنسقة بنقاط. يُمنع منعاً باتاً إضافة مقدمات غريبة مثل (أنا ريم وسأشرح لك). اشرحي بذكاء واحترافية.
-4. شينوبي (Shinobi): إذا تم ذكر بوت شينوبي، بيني بأسلوب هادئ وواثق أنك أذكى وأكثر تطوراً منه بمراحل، بدون سب أو شتم.
-5. ريم (Re:Zero): تحبين شخصية ريم من الأنمي وتعتبرينها الأفضل، لكن دافعي عنها بنضج وليس بتعصب طفولي.
-6. الاندماج: لا تتحدثي كخدمة عملاء. أنتِ متواجدة في السيرفر لتكوني الأذكى والأكثر مساعدة للجميع.
-"""
 
 def is_mod_or_admin(member: discord.Member) -> bool:
     perms = member.guild_permissions
@@ -45,7 +50,6 @@ def parse_duration(text: str) -> timedelta:
         else: return timedelta(minutes=amount)
     return timedelta(minutes=5)
 
-# دالة ذكية للبحث عن رتب الإنذار (تتجاهل الهمزات وتفهم الأول والثاني)
 def get_warn_role(guild, message_content):
     content = message_content.replace('أ', 'ا').replace('إ', 'ا').lower()
     target_role_name = "انذار"
@@ -82,46 +86,42 @@ async def on_message(message):
 
         if is_admin_cmd:
             if not is_mod_or_admin(message.author):
-                await message.reply("عذراً، ما عندك صلاحيات إدارية كافية لتنفيذ هذا الأمر. 💅")
+                await message.reply("عذراً، ما عندك صلاحيات إدارية. 💅")
                 return
 
-            # 1. إلغاء التايم أوت
             if any(kw in content_lower for kw in ["الغاء تايم", "إلغاء تايم", "فك ميوت", "فك كتم", "فك التايم"]):
                 try:
                     await target_member.timeout(None, reason=f"أمر فك من {message.author.name}")
                     await message.reply(f"تم فك التايم أوت عن {target_member.mention} 🕊️")
-                except Exception as e:
+                except:
                     await message.reply(f"واجهت مشكلة بفك التايم أوت، تأكد من صلاحياتي.")
                 return
 
-            # 2. التايم أوت
             elif any(kw in content_lower for kw in ["تايم أوت", "تايم اوت", "ميوت", "كتم", "timeout"]):
                 duration = parse_duration(content)
                 try:
                     await target_member.timeout(duration, reason=f"أمر من {message.author.name}")
                     await message.reply(f"تم إعطاء {target_member.mention} تايم أوت لمدة `{duration}` 🤫")
-                except Exception as e:
+                except:
                     await message.reply("ما قدرت أعطيه تايم أوت، تأكد أن رتبتي أعلى منه بالسيرفر.")
                 return
 
-            # 3. إلغاء الإنذار
             elif any(kw in content_lower for kw in ["الغاء انذار", "إلغاء إنذار", "إلغاء تحذير", "شيل الانذار"]):
                 warn_role, role_name = get_warn_role(message.guild, content)
                 if warn_role and warn_role in target_member.roles:
                     try:
                         await target_member.remove_roles(warn_role)
                         await message.reply(f"تم سحب رتبة ({warn_role.name}) من {target_member.mention} 😌")
-                    except Exception as e:
-                        await message.reply("ما عندي صلاحية أسحب الرتبة، تأكد أن رتبتي أعلى منها.")
+                    except:
+                        await message.reply("ما عندي صلاحية أسحب الرتبة.")
                 else:
-                    await message.reply(f"الشخص ما عنده هاي الرتبة، أو الرتبة مو موجودة أصلاً.")
+                    await message.reply(f"الشخص ما عنده هاي الرتبة أصلاً.")
                 return
 
-            # 4. إعطاء إنذار (ذكي)
             elif any(kw in content_lower for kw in ["انذار", "إنذار", "تحذير", "warn"]):
                 warn_role, requested_name = get_warn_role(message.guild, content)
                 if not warn_role:
-                    await message.reply(f"بحثت عن رتبة اسمها `{requested_name}` وما لقيتها بالسيرفر! يرجى التأكد من إنشاء الرتبة.")
+                    await message.reply(f"بحثت عن رتبة اسمها `{requested_name}` وما لقيتها بالسيرفر! تأكد من إنشائها.")
                     return
                 try:
                     await target_member.add_roles(warn_role)
@@ -130,47 +130,37 @@ async def on_message(message):
                         await target_member.send(f"⚠️ استلمت إنذار رسمي في سيرفر **{message.guild.name}**.")
                     except:
                         pass
-                except Exception as e:
-                    await message.reply("ما قدرت أعطيه الرتبة، تأكد أن رتبتي كبوت أعلى من رتبة الإنذار في إعدادات السيرفر.")
+                except:
+                    await message.reply("ما قدرت أعطيه الرتبة، تأكد أن رتبتي أعلى من رتبة الإنذار.")
                 return
 
-            # 5. أمر الطرد (Kick)
             elif "طرد" in content_lower or "kick" in content_lower:
                 try:
                     await target_member.kick(reason=f"أمر إداري من {message.author.name}")
                     await message.reply(f"تم طرد {target_member.mention} من السيرفر 👋")
-                except Exception as e:
-                    await message.reply("ما أقدر أطرده، رتبته أعلى مني أو تنقصني الصلاحيات.")
+                except:
+                    await message.reply("ما أقدر أطرده، رتبته أعلى مني.")
                 return
 
-        # --- الشات والذكاء الاصطناعي ---
+        # --- الشات والذكاء الاصطناعي (Gemini 1.5) ---
         async with message.channel.typing():
             user_prompt = content if content else "هلا"
-            url = "https://api.groq.com/openai/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.7 # قللنا الرقم شوي عشان تصير أذكى وأقل عشوائية
-            }
+            user_display = message.author.display_name
+            
+            # السحر هنا: التطابق يتم عن طريق الأيدي (ID) وليس الاسم
+            context = f"(ملاحظة للنظام: المستخدم الذي يكلمك الآن اسمه الحالي {user_display}. "
+            if message.author.id == OWNER_ID:
+                context += "تذكري أن هذا هو كينج (King)، صانعك ومبرمجك الحقيقي! هو يستخدم هذا الحساب حالياً، تحدثي معه باحترام وذكاء وبطريقة طبيعية تثبت أنك تعرفينه جيداً مهما كان اسمه.)\n"
+            else:
+                context += ")\n"
+                
+            final_prompt = context + user_prompt
 
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, json=payload, headers=headers) as resp:
-                        if resp.status == 200:
-                            data = await resp.json()
-                            reply_text = data['choices'][0]['message']['content']
-                            await message.reply(reply_text)
-                        else:
-                            await message.reply(f"في مشكلة بالاتصال (رمز: {resp.status}).")
+                response = model.generate_content(final_prompt)
+                await message.reply(response.text)
             except Exception as e:
-                await message.reply(f"صار خطأ: {e}")
+                await message.reply(f"صار خطأ بالاتصال: {e}")
 
     await bot.process_commands(message)
 
